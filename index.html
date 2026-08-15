@@ -230,13 +230,14 @@
     function initMap() {
       map = L.map('satelliteMap', { zoomControl: false, attributionControl: false, preferCanvas: true }).setView([26.1274, 32.3466], 17);
       
-      const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, crossOrigin: 'anonymous' });
-      const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+      // التعديل هنا: استخدام طبقة Google Satellite المدعومة بزووم يصل حتى 22 لرؤية المساحات الصغيرة جداً بوضوح
+      const satLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        maxZoom: 22,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        crossOrigin: 'anonymous'
+      });
       
       satLayer.addTo(map);
-      
-      // التبديل التلقائي للخريطة في حال فشل تحميل بيانات القمر الصناعي
-      satLayer.on('tileerror', () => { satLayer.remove(); streetLayer.addTo(map); });
     }
     initMap();
 
@@ -380,7 +381,19 @@
 
       if (polygonLayer) map.removeLayer(polygonLayer);
       polygonLayer = L.geoJSON(feature, { style: { color: '#ff0000', weight: 3.5, fillColor: '#ff0000', fillOpacity: 0.15 } }).addTo(map);
-      map.fitBounds(polygonLayer.getBounds(), { padding: [15, 15], maxZoom: 21 });
+
+// ضبط الزووم بذكاء: للمساحات الكبيرة نعطي مساحة رؤية أوسع (Padding أكبر) لتبدو مناسبة
+      if (parseFloat(rawArea) < 200) {
+          const centerPt = polygonLayer.getBounds().getCenter();
+          map.setView(centerPt, 20); 
+      } else {
+          // للمساحات الكبيرة والطويلة، نقوم بتوسيع الـ padding بنسبة مئوية ليظهر المحيط بوضوح أقل تقريباً وأكثر شمولاً
+          const bounds = polygonLayer.getBounds();
+          map.fitBounds(bounds, { 
+              padding: [60, 60], // زيادة المساحة الفارغة حول المضلع بنسبة تضمن رؤية محيطه الشامل
+              maxZoom: 18 
+          });
+      }
 
       const center = turf.centerOfMass(feature).geometry.coordinates;
       renderGradientQR(`https://maps.google.com/?q=${center[1].toFixed(6)},${center[0].toFixed(6)}`);
@@ -463,7 +476,6 @@
     }
 
     async function captureCertificateCanvas() {
-      // رفعنا زمن الانتظار لـ 1200 مللي ثانية لضمان تحميل الخريطة
       await new Promise(r => setTimeout(r, 1200));
       const element = document.getElementById('certificate-wrapper');
       return await html2canvas(element, { scale: 2, useCORS: true, allowTaint: false, logging: false });
