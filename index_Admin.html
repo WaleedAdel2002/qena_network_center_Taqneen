@@ -37,6 +37,7 @@
     .btn-all-pdf { background-color: #c82333; color: white; }
     .btn-all-img { background-color: #e67e22; color: white; }
     .btn-excel { background-color: #107c41; color: white; }
+    .btn-audit { background-color: #6c757d; color: white; }
     .btn-nav { background-color: #212529; color: white; }
     .btn:hover:not(:disabled) { filter: brightness(0.92); }
 
@@ -114,6 +115,7 @@
         <button class="btn btn-all-pdf" onclick="exportAllPDFs()">📚 استخراج كل الشهادات (PDF مجمع)</button>
         <button class="btn btn-all-img" onclick="exportAllImagesZip()">📦 استخراج كل الشهادات (صور ZIP)</button>
         <button class="btn btn-excel" onclick="exportAuditExcel()">📊 تقرير الإنجاز (Excel)</button>
+        <button class="btn btn-audit" onclick="openAuditModal()">📋 عرض سجل الإنجاز</button>
       </div>
     </div>
     <div id="progressContainer"><div id="progressBar"></div><span id="progressText">جاري المعالجة...</span></div>
@@ -182,6 +184,36 @@
     </div>
   </div>
 
+  <!-- نافذة عرض سجل الإنجاز والتحكم فيه -->
+  <div id="auditModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:#fff; width:800px; max-height:85vh; border-radius:8px; padding:20px; display:flex; flex-direction:column; direction:rtl; box-shadow:0 4px 20px rgba(0,0,0,0.4);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ddd; padding-bottom:10px; margin-bottom:15px;">
+        <h3 style="margin:0; font-family:'Tajawal', sans-serif;">📋 سجل الأنشطة والإنجازات</h3>
+        <button onclick="closeAuditModal()" style="background:#dc3545; color:white; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">✕ إغلاق</button>
+      </div>
+      <div style="flex:1; overflow-y:auto; border:1px solid #ddd; border-radius:4px; padding:10px;">
+        <table style="width:100%; border-collapse:collapse; text-align:right; font-size:13px;">
+          <thead>
+            <tr style="background:#f8f9fa; border-bottom:2px solid #ddd;">
+              <th style="padding:8px; border:1px solid #ddd;">التوقيت</th>
+              <th style="padding:8px; border:1px solid #ddd;">المستخدم</th>
+              <th style="padding:8px; border:1px solid #ddd;">الملف</th>
+              <th style="padding:8px; border:1px solid #ddd;">العملية</th>
+              <th style="padding:8px; border:1px solid #ddd;">العدد</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody">
+            <!-- سيتم تعبئة السجلات هنا تلقائياً -->
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:15px; display:flex; justify-content:space-between;">
+        <button onclick="clearAuditLogs()" style="background:#ffc107; color:#000; border:none; padding:6px 14px; border-radius:4px; cursor:pointer; font-weight:bold;">🗑️ مسح السجل</button>
+        <button onclick="exportAuditExcel()" style="background:#107c41; color:white; border:none; padding:6px 14px; border-radius:4px; cursor:pointer; font-weight:bold;">📊 تحميل كـ Excel</button>
+      </div>
+    </div>
+  </div>
+
   <div id="hiddenQR" style="display:none;"></div>
 
   <script>
@@ -218,6 +250,42 @@
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "سجل الإنجاز");
       XLSX.writeFile(wb, `تقرير_الاستخدام_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    // دوال تحكم نافذة السجلات
+    function openAuditModal() {
+      const tbody = document.getElementById('auditTableBody');
+      tbody.innerHTML = '';
+      
+      if (sessionLogs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#777;">لا يوجد أنشطة مسجلة حتى الآن.</td></tr>`;
+      } else {
+        sessionLogs.slice().reverse().forEach(log => {
+          tbody.innerHTML += `
+            <tr style="border-bottom:1px solid #eee;">
+              <td style="padding:6px; border:1px solid #ddd;">${log.timestamp}</td>
+              <td style="padding:6px; border:1px solid #ddd;">${log.user || '-'}</td>
+              <td style="padding:6px; border:1px solid #ddd;">${log.file || '-'}</td>
+              <td style="padding:6px; border:1px solid #ddd; font-weight:bold; color:#0056b3;">${log.action}</td>
+              <td style="padding:6px; border:1px solid #ddd; text-align:center;">${log.count}</td>
+            </tr>
+          `;
+        });
+      }
+      document.getElementById('auditModal').style.display = 'flex';
+    }
+
+    function closeAuditModal() {
+      document.getElementById('auditModal').style.display = 'none';
+    }
+
+    function clearAuditLogs() {
+      if (confirm("هل أنت متأكد من رغبتك في مسح كافة سجلات الأنشطة؟")) {
+        sessionLogs = [];
+        localStorage.removeItem('survey_session_logs');
+        openAuditModal();
+        alert("تم مسح السجل بنجاح.");
+      }
     }
 
     function checkUser() {
