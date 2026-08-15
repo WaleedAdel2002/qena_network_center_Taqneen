@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>بيان احداثيات طلب تقنين</title>
+  <title>بيان إحداثيات طلب تقنين</title>
 
   <!-- GIS Libraries -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -11,7 +11,7 @@
   <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
   <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
   
-  <!-- QR & Export Libraries (Reliable CDNs) -->
+  <!-- QR & Export Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -66,9 +66,7 @@
       gap: 10px;
     }
 
-    input[type="file"] {
-      display: none;
-    }
+    input[type="file"] { display: none; }
 
     .btn {
       padding: 6px 14px;
@@ -90,7 +88,6 @@
     .btn-all-pdf { background-color: #c82333; color: white; }
     .btn-all-img { background-color: #e67e22; color: white; }
     .btn-nav { background-color: #212529; color: white; }
-
     .btn:hover:not(:disabled) { filter: brightness(0.92); }
 
     #progressContainer {
@@ -100,22 +97,8 @@
       border-radius: 4px;
       overflow: hidden;
     }
-
-    #progressBar {
-      width: 0%;
-      height: 8px;
-      background-color: #0056b3;
-      transition: width 0.2s ease;
-    }
-
-    #progressText {
-      font-size: 11px;
-      font-weight: 700;
-      color: #333;
-      text-align: center;
-      display: block;
-      margin-top: 2px;
-    }
+    #progressBar { width: 0%; height: 8px; background-color: #0056b3; transition: width 0.2s ease; }
+    #progressText { font-size: 11px; font-weight: 700; color: #333; text-align: center; display: block; margin-top: 2px; }
 
     /* Master Document Container */
     #certificate-wrapper {
@@ -127,6 +110,7 @@
       border: 2.5px solid #000;
       position: relative;
       direction: ltr;
+      overflow: hidden;
     }
 
     .inner-border-wrapper {
@@ -163,20 +147,16 @@
       object-fit: contain;
     }
 
-    .header-left span {
-      direction: rtl;
-    }
-
     .header-center {
       text-align: center;
       direction: rtl;
     }
 
     .header-center h1 {
-      font-size: 26px;
+      font-size: 27px;
       font-weight: 900;
-      letter-spacing: 0.5px;
       color: #000;
+      margin: 0;
     }
 
     .header-right {
@@ -195,10 +175,6 @@
       object-fit: contain;
     }
 
-    .header-right span {
-      direction: rtl;
-    }
-
     .meta-table {
       width: 100%;
       border-collapse: collapse;
@@ -206,26 +182,9 @@
       text-align: center;
       direction: ltr;
     }
-
-    .meta-table th, .meta-table td {
-      border: 1.5px solid #000;
-      padding: 2px;
-    }
-
-    .meta-table th {
-      background-color: #9ea3ac;
-      font-size: 13.5px;
-      font-weight: 800;
-      color: #000;
-      height: 22px;
-    }
-
-    .meta-table td {
-      font-size: 12px;
-      font-weight: 700;
-      color: #000;
-      height: 22px;
-    }
+    .meta-table th, .meta-table td { border: 1.5px solid #000; padding: 2px; }
+    .meta-table th { background-color: #9ea3ac; font-size: 13.5px; font-weight: 800; color: #000; height: 22px; }
+    .meta-table td { font-size: 12px; font-weight: 700; color: #000; height: 22px; }
 
     .middle-maps-container {
       display: grid;
@@ -265,17 +224,9 @@
       background-color: #fff;
     }
 
-    #satelliteMap {
-      width: 100%;
-      height: 100%;
-    }
+    #satelliteMap, #croquisCanvas { width: 100%; height: 100%; display: block; }
 
-    #croquisCanvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
+    /* Bottom Section */
     .bottom-section {
       display: grid;
       grid-template-columns: 1.45fr 0.95fr;
@@ -283,10 +234,15 @@
       margin-top: 5px;
       align-items: stretch;
       direction: ltr;
+      height: 185px;
     }
 
     .coords-table-wrapper {
       border: 1.5px solid #000;
+      height: 100%;
+      display: flex;
+      align-items: flex-start;
+      background: #fff;
     }
 
     .coords-table {
@@ -296,25 +252,26 @@
       direction: ltr;
     }
 
-    .coords-table th, .coords-table td {
-      border: 1.5px solid #000;
-      padding: 2px 4px;
-    }
+    .coords-table th, .coords-table td { border: 1.5px solid #000; padding: 2px 3px; }
+    .coords-table th { background-color: #9ea3ac; font-size: 13px; font-weight: 800; color: #000; height: 22px; }
+    .coords-table td { font-size: 11.5px; font-weight: 700; color: #000; height: 19px; }
 
-    .coords-table th {
-      background-color: #9ea3ac;
-      font-size: 13.5px;
-      font-weight: 800;
-      color: #000;
-      height: 22px;
+    /* هيكل الجدول المنقسم إلى عمودين */
+    .split-tables-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      direction: ltr;
     }
-
-    .coords-table td {
-      font-size: 12px;
-      font-weight: 700;
-      color: #000;
-      height: 19px;
+    .split-tables-container table {
+      width: 50%;
+      height: fit-content;
+      border-collapse: collapse;
     }
+    .split-tables-container table:first-child { border-right: 1.5px solid #000; }
+    
+    .small-text th { font-size: 11.5px !important; padding: 2px 1px !important; height: 20px !important; }
+    .small-text td { font-size: 11px !important; padding: 1.5px 1px !important; height: 16px !important; }
 
     .auth-box-container {
       border: 1.5px solid #000;
@@ -327,19 +284,8 @@
       direction: ltr;
     }
 
-    #qrcodeContainer {
-      width: 125px;
-      height: 125px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #qrCanvas {
-      width: 120px;
-      height: 120px;
-      display: block;
-    }
+    #qrcodeContainer { width: 125px; height: 125px; display: flex; align-items: center; justify-content: center; }
+    #qrCanvas { width: 120px; height: 120px; display: block; }
 
     .auth-signatures-col {
       display: flex;
@@ -351,26 +297,9 @@
       direction: rtl;
     }
 
-    .survey-logo {
-      width: 85px;
-      height: 46px;
-      object-fit: contain;
-    }
-
-    .stamp-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 2px;
-      direction: rtl;
-    }
-
-    .stamp-circle {
-      width: 38px;
-      height: 38px;
-      border: 1.5px solid #000;
-      border-radius: 50%;
-    }
+    .survey-logo { width: 90px; height: 50px; object-fit: contain; }
+    .stamp-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; direction: rtl; }
+    .stamp-circle { width: 38px; height: 38px; border: 1.5px solid #000; border-radius: 50%; }
 
     .cert-footer {
       border: 1.5px solid #000;
@@ -387,7 +316,6 @@
 </head>
 <body>
 
-  <!-- Controls Panel -->
   <div class="control-panel">
     <div class="panel-row">
       <div class="upload-box">
@@ -395,14 +323,12 @@
         <input type="file" id="fileInput" accept=".geojson,.json,.zip">
         <span id="fileName" style="font-size: 13px; color: #555;">لم يتم اختيار ملف</span>
       </div>
-
       <div style="display: flex; gap: 8px; align-items: center;">
         <button class="btn btn-nav" onclick="navigateFeature(-1)">السابق</button>
         <span id="recordIndicator" style="font-weight: 800; font-size: 13px; min-width: 60px; text-align: center;">0 / 0</span>
         <button class="btn btn-nav" onclick="navigateFeature(1)">التالي</button>
       </div>
     </div>
-
     <div class="panel-row" style="border-top: 1px solid #dee2e6; padding-top: 8px;">
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
         <button class="btn btn-single-pdf" onclick="exportCurrentPDF()">📄 استخراج الشهادة (PDF)</button>
@@ -411,35 +337,26 @@
         <button class="btn btn-all-img" onclick="exportAllImagesZip()">📦 استخراج كل الشهادات (صور ZIP)</button>
       </div>
     </div>
-
-    <div id="progressContainer">
-      <div id="progressBar"></div>
-      <span id="progressText">جاري المعالجة...</span>
-    </div>
+    <div id="progressContainer"><div id="progressBar"></div><span id="progressText">جاري المعالجة...</span></div>
   </div>
 
-  <!-- A4 Certificate Master Document -->
   <div id="certificate-wrapper">
     <div class="inner-border-wrapper">
 
-      <!-- 1. Header (Logos in outer corners) -->
       <div class="cert-header">
         <div class="header-left">
           <img src="images/LOGO11.png" onerror="this.src='https://raw.githubusercontent.com/WaleedAdel2002/networkcenter/main/LOGO11%20.png'" alt="مركز معلومات شبكات المرافق">
           <span>مركز معلومات شبكات المرافق</span>
         </div>
-
         <div class="header-center">
-          <h1>بيــــان احداثيــات طلـب تقنيـــن</h1>
+          <h1>بيان إحداثيات طلب تقنين</h1>
         </div>
-
         <div class="header-right">
           <span>ديوان عام محافظة قنا</span>
           <img src="images/qena_logo.png" onerror="this.style.display='none'" alt="محافظة قنا">
         </div>
       </div>
 
-      <!-- 2. Metadata Table -->
       <table class="meta-table">
         <thead>
           <tr>
@@ -456,65 +373,41 @@
         <tbody>
           <tr>
             <td id="cell-unit">م²</td>
-            <td id="cell-area">82.71</td>
+            <td id="cell-area">0.00</td>
             <td id="cell-activity">زراعى</td>
             <td id="cell-center">قنا</td>
             <td id="cell-loc">مركز دشنا</td>
-            <td id="cell-nid">26503172700594</td>
-            <td id="cell-name">عبد الرحيم محمد سعيد</td>
-            <td id="cell-code">228390/65</td>
+            <td id="cell-nid">-</td>
+            <td id="cell-name">-</td>
+            <td id="cell-code">-</td>
           </tr>
         </tbody>
       </table>
 
-      <!-- 3. Maps Section -->
       <div class="middle-maps-container">
         <div class="map-frame-box">
           <div class="map-title-bar">الموقع علي الصورة الفضائية</div>
-          <div class="map-inner-container">
-            <div id="satelliteMap"></div>
-          </div>
+          <div class="map-inner-container"><div id="satelliteMap"></div></div>
         </div>
-
         <div class="map-frame-box">
           <div class="map-title-bar">كروكي الموقع</div>
-          <div class="map-inner-container">
-            <canvas id="croquisCanvas" width="480" height="255"></canvas>
-          </div>
+          <div class="map-inner-container"><canvas id="croquisCanvas" width="480" height="255"></canvas></div>
         </div>
       </div>
 
-      <!-- 4. Bottom Section -->
       <div class="bottom-section">
-        <!-- Left: Coordinates Table -->
-        <div class="coords-table-wrapper">
-          <table class="coords-table">
-            <thead>
-              <tr>
-                <th style="width: 15%;">رقم النقطة</th>
-                <th style="width: 28%;">خط الطول</th>
-                <th style="width: 28%;">دائرة العرض</th>
-                <th style="width: 29%;">كود الطلب</th>
-              </tr>
-            </thead>
-            <tbody id="coordsTableBody">
-              <tr><td>1</td><td>32.346621</td><td>26.127255</td><td>228390/65</td></tr>
-              <tr><td>2</td><td>32.346488</td><td>26.127421</td><td>228390/65</td></tr>
-              <tr><td>3</td><td>32.346622</td><td>26.127512</td><td>228390/65</td></tr>
-              <tr><td>4</td><td>32.346710</td><td>26.127360</td><td>228390/65</td></tr>
-              <tr><td>5</td><td>32.346704</td><td>26.127325</td><td>228390/65</td></tr>
-            </tbody>
-          </table>
+        <!-- حاوية جدول الإحداثيات الديناميكية -->
+        <div class="coords-table-wrapper" id="coordsTableWrapper">
         </div>
 
-        <!-- Right: Auth Box -->
         <div class="auth-box-container">
-          <div id="qrcodeContainer">
-            <canvas id="qrCanvas" width="240" height="240"></canvas>
-          </div>
-
+          <div id="qrcodeContainer"><canvas id="qrCanvas" width="240" height="240"></canvas></div>
           <div class="auth-signatures-col">
-            <img class="survey-logo" src="images/survey_logo.png" onerror="this.style.display='none'" alt="الهيئة العامة للمساحة">
+            <img class="survey-logo" 
+                 src="images/survey_logo.png" 
+                 crossorigin="anonymous"
+                 onerror="if(!this.tried1){this.tried1=true;this.src='images/survey_logo.jpg';}else if(!this.tried2){this.tried2=true;this.src='https://raw.githubusercontent.com/WaleedAdel2002/networkcenter/main/survey_logo.png';}else{this.src='https://upload.wikimedia.org/wikipedia/ar/thumb/9/91/Egyptian_General_Survey_Authority_Logo.png/250px-Egyptian_General_Survey_Authority_Logo.png';}" 
+                 alt="الهيئة العامة للمساحة">
             <div style="font-size: 13px; font-weight: 800; text-align: center; width: 100%;">يعتمد</div>
             <div class="stamp-row">
               <div class="stamp-circle"></div>
@@ -524,7 +417,6 @@
         </div>
       </div>
 
-      <!-- 5. Disclaimer Footer -->
       <div class="cert-footer">
         <span>• لا يعتد بهذه الشهادة كمستند ملكية ولا يترتب عليها أثر قانوني</span>
         <span>• تم الإرشاد عن الموقع بمعرفة مقدم الطلب دون أدنى مسؤولية على مركز معلومات شبكات المرافق بقنا</span>
@@ -548,9 +440,9 @@
         preferCanvas: true
       }).setView([26.1274, 32.3466], 17);
 
-      L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-        maxZoom: 20,
-        crossOrigin: true
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        crossOrigin: 'anonymous'
       }).addTo(map);
     }
     initMap();
@@ -682,33 +574,70 @@
       let areaFormatted = parseFloat(rawArea).toFixed(2);
 
       document.getElementById('cell-area').innerText = areaFormatted;
-      document.getElementById('cell-unit').innerText = props.Unit || props.unit || props['الوحدة'] || 'م²';
+      document.getElementById('cell-unit').innerText = props.Unit || props.unit || props['الوحدة'] || 'سهم';
 
       let coords = feature.geometry.coordinates[0];
       if (feature.geometry.type === 'MultiPolygon') coords = feature.geometry.coordinates[0][0];
       let points = coords.slice(0, -1);
 
-      const tbody = document.getElementById('coordsTableBody');
-      tbody.innerHTML = '';
-      points.forEach((pt, idx) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${idx + 1}</td>
-          <td>${pt[0].toFixed(6)}</td>
-          <td>${pt[1].toFixed(6)}</td>
-          <td>${code}</td>
+      // تقسيم الجدول إذا كان عدد النقاط أكبر من 5
+      const coordsWrapper = document.getElementById('coordsTableWrapper');
+      coordsWrapper.innerHTML = '';
+
+      if (points.length <= 5) {
+        let tableHTML = `
+          <table class="coords-table">
+            <thead>
+              <tr>
+                <th style="width: 15%;">رقم النقطة</th>
+                <th style="width: 28%;">خط الطول</th>
+                <th style="width: 28%;">دائرة العرض</th>
+                <th style="width: 29%;">كود الطلب</th>
+              </tr>
+            </thead>
+            <tbody>
         `;
-        tbody.appendChild(tr);
-      });
+        points.forEach((pt, idx) => {
+          tableHTML += `<tr><td>${idx + 1}</td><td>${pt[0].toFixed(6)}</td><td>${pt[1].toFixed(6)}</td><td>${code}</td></tr>`;
+        });
+        tableHTML += `</tbody></table>`;
+        coordsWrapper.innerHTML = tableHTML;
+      } else {
+        // تقسيم إلى نصفين
+        const mid = Math.ceil(points.length / 2);
+        const firstHalf = points.slice(0, mid);
+        const secondHalf = points.slice(mid);
+
+        const buildSubTable = (pts, startIndex) => {
+          let html = `
+            <table class="coords-table small-text">
+              <thead>
+                <tr>
+                  <th style="width: 18%;">رقم</th>
+                  <th style="width: 41%;">خط الطول</th>
+                  <th style="width: 41%;">دائرة العرض</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+          pts.forEach((pt, i) => {
+            html += `<tr><td>${startIndex + i + 1}</td><td>${pt[0].toFixed(6)}</td><td>${pt[1].toFixed(6)}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+          return html;
+        };
+
+        let containerHTML = `<div class="split-tables-container">`;
+        containerHTML += buildSubTable(firstHalf, 0);
+        containerHTML += buildSubTable(secondHalf, mid);
+        containerHTML += `</div>`;
+
+        coordsWrapper.innerHTML = containerHTML;
+      }
 
       if (polygonLayer) map.removeLayer(polygonLayer);
       polygonLayer = L.geoJSON(feature, {
-        style: {
-          color: '#ff0000',
-          weight: 3.5,
-          fillColor: '#ff0000',
-          fillOpacity: 0.15
-        }
+        style: { color: '#ff0000', weight: 3.5, fillColor: '#ff0000', fillOpacity: 0.15 }
       }).addTo(map);
 
       map.fitBounds(polygonLayer.getBounds(), { padding: [15, 15], maxZoom: 19 });
@@ -778,18 +707,21 @@
 
         ctx.fillStyle = "#000000";
         ctx.font = "bold 13px 'Simplified Arabic', Tahoma, Arial";
-        ctx.fillText(i + 1, x + 6, y - 5);
+        ctx.fillText(i + 1, x + 6, y - 6);
       });
 
       const polyCenterX = sumX / points.length;
       const polyCenterY = sumY / points.length;
 
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillRect(polyCenterX - 25, polyCenterY - 15, 50, 30);
+      
       ctx.fillStyle = "#000000";
-      ctx.font = "bold 13.5px 'Simplified Arabic', Tahoma, Arial";
+      ctx.font = "bold 14px 'Simplified Arabic', Tahoma, Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(`${areaVal}`, polyCenterX, polyCenterY - 8);
-      ctx.fillText(`${unitVal}`, polyCenterX, polyCenterY + 10);
+      ctx.fillText(`${unitVal}`, polyCenterX, polyCenterY + 8);
 
       const nx = canvas.width - 25;
       const ny = 35;
@@ -834,14 +766,13 @@
       ctx.fillText("14 m", 82, canvas.height - 21);
     }
 
-    // Capture Canvas Helper مع تجاوز أي أخطاء أمان للصور
     async function captureCertificateCanvas() {
       await new Promise(r => setTimeout(r, 450));
       const element = document.getElementById('certificate-wrapper');
       return await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         logging: false
       });
     }
@@ -859,14 +790,12 @@
         pContainer.style.display = 'none';
         return;
       }
-
       pContainer.style.display = 'block';
       const pct = Math.round((current / total) * 100);
       pBar.style.width = `${pct}%`;
       pText.innerText = `${text} (${current} / ${total}) - ${pct}%`;
     }
 
-    // 1. استخراج الشهادة الحالية PDF
     async function exportCurrentPDF() {
       try {
         const { jsPDF } = window.jspdf;
@@ -878,37 +807,26 @@
         
         const code = document.getElementById('cell-code').innerText.replace('/', '_');
         pdf.save(`شهادة_تقنين_${code}.pdf`);
-      } catch (err) {
-        alert("حدث خطأ أثناء استخراج PDF: " + err.message);
-      }
+      } catch (err) { alert("حدث خطأ أثناء استخراج PDF: " + err.message); }
     }
 
-    // 2. استخراج الشهادة الحالية كصورة
     async function exportCurrentImage() {
       try {
         const canvas = await captureCertificateCanvas();
         const code = document.getElementById('cell-code').innerText.replace('/', '_');
+        const dataUrl = canvas.toDataURL("image/png");
         
-        canvas.toBlob(function(blob) {
-          if (blob) {
-            saveAs(blob, `شهادة_تقنين_${code}.png`);
-          } else {
-            const imageURL = canvas.toDataURL("image/png");
-            const a = document.createElement("a");
-            a.href = imageURL;
-            a.download = `شهادة_تقنين_${code}.png`;
-            a.click();
-          }
-        });
-      } catch (err) {
-        alert("حدث خطأ أثناء استخراج الصورة: " + err.message);
-      }
+        const link = document.createElement('a');
+        link.download = `شهادة_تقنين_${code}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) { alert("حدث خطأ أثناء استخراج الصورة: " + err.message); }
     }
 
-    // 3. استخراج كل الشهادات في ملف PDF مجمع
     async function exportAllPDFs() {
       if (!geojsonData || geojsonData.length === 0) return alert("يرجى رفع ملف أولاً!");
-
       try {
         setControlsDisabled(true);
         const { jsPDF } = window.jspdf;
@@ -928,23 +846,14 @@
           if (i > 0) pdf.addPage('a4', 'landscape');
           pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
         }
-
         updateProgress(total, total, "جاري حفظ وتنزيل الملف المجمع...");
         pdf.save(`جميع_شهادات_التقنين_${total}.pdf`);
-      } catch (err) {
-        alert("حدث خطأ أثناء استخراج الملف المجمع: " + err.message);
-      } finally {
-        setTimeout(() => {
-          updateProgress(0, 0, "");
-          setControlsDisabled(false);
-        }, 1000);
-      }
+      } catch (err) { alert("حدث خطأ: " + err.message); } 
+      finally { setTimeout(() => { updateProgress(0, 0, ""); setControlsDisabled(false); }, 1000); }
     }
 
-    // 4. استخراج كل الشهادات كصور مضغوطة داخل ZIP
     async function exportAllImagesZip() {
       if (!geojsonData || geojsonData.length === 0) return alert("يرجى رفع ملف أولاً!");
-
       try {
         setControlsDisabled(true);
         const zip = new JSZip();
@@ -958,21 +867,14 @@
           const canvas = await captureCertificateCanvas();
           const code = document.getElementById('cell-code').innerText.replace('/', '_');
           
-          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-          zip.file(`شهادة_${code}_${i+1}.png`, blob);
+          const base64Data = canvas.toDataURL('image/png').replace(/^data:image\/(png|jpg);base64,/, "");
+          zip.file(`شهادة_${code}_${i+1}.png`, base64Data, { base64: true });
         }
-
         updateProgress(total, total, "جاري ضغط الصور في ملف ZIP...");
         const zipBlob = await zip.generateAsync({ type: "blob" });
         saveAs(zipBlob, `جميع_شهادات_التقنين_صور_${total}.zip`);
-      } catch (err) {
-        alert("حدث خطأ أثناء استخراج ملف الـ ZIP: " + err.message);
-      } finally {
-        setTimeout(() => {
-          updateProgress(0, 0, "");
-          setControlsDisabled(false);
-        }, 1000);
-      }
+      } catch (err) { alert("حدث خطأ: " + err.message); } 
+      finally { setTimeout(() => { updateProgress(0, 0, ""); setControlsDisabled(false); }, 1000); }
     }
   </script>
 </body>
