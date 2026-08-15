@@ -21,7 +21,6 @@
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800;900&display=swap');
-
     * { box-sizing: border-box; font-family: 'Simplified Arabic', 'Traditional Arabic', 'Tajawal', Arial, sans-serif; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     body { background-color: #4a4d50; padding: 20px 0; display: flex; flex-direction: column; align-items: center; }
 
@@ -77,7 +76,7 @@
     .split-tables-container { display: flex; width: 100%; height: 100%; direction: ltr; }
     .split-tables-container table { width: 50%; height: fit-content; border-collapse: collapse; }
     .split-tables-container table:first-child { border-right: 1.5px solid #000; }
-    .small-text th { font-size: 10.5px !important; padding: 1px !important; height: 18px !important; }
+    .small-text th { font-size: 10.5px !important; padding: 1px !important; height: 16px !important; }
     .small-text td { font-size: 10px !important; padding: 1px !important; height: 14px !important; }
 
     .auth-box-container { border: 1.5px solid #000; display: grid; grid-template-columns: 130px 1fr; padding: 4px 8px; align-items: center; gap: 8px; background: #fff; direction: ltr; }
@@ -85,7 +84,7 @@
     #qrCanvas { width: 120px; height: 120px; display: block; }
 
     .auth-signatures-col { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; padding: 2px 0; direction: rtl; }
-    .survey-logo { width: 90px; height: 50px; object-fit: contain; }
+    .survey-logo { width: 85px; height: 45px; object-fit: contain; }
     .stamp-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; direction: rtl; }
     .stamp-circle { width: 38px; height: 38px; border: 1.5px solid #000; border-radius: 50%; }
 
@@ -162,7 +161,7 @@
           <div id="qrcodeContainer"><canvas id="qrCanvas" width="240" height="240"></canvas></div>
           <div class="auth-signatures-col">
             <img class="survey-logo" 
-                 src="images/survey_logo.png" 
+                 src="https://raw.githubusercontent.com/WaleedAdel2002/networkcenter/main/survey_logo.png" 
                  crossorigin="anonymous"
                  onerror="this.src='https://upload.wikimedia.org/wikipedia/ar/thumb/9/91/Egyptian_General_Survey_Authority_Logo.png/250px-Egyptian_General_Survey_Authority_Logo.png';" 
                  alt="الهيئة العامة للمساحة">
@@ -230,7 +229,14 @@
 
     function initMap() {
       map = L.map('satelliteMap', { zoomControl: false, attributionControl: false, preferCanvas: true }).setView([26.1274, 32.3466], 17);
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, crossOrigin: 'anonymous' }).addTo(map);
+      
+      const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, crossOrigin: 'anonymous' });
+      const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+      
+      satLayer.addTo(map);
+      
+      // التبديل التلقائي للخريطة في حال فشل تحميل بيانات القمر الصناعي
+      satLayer.on('tileerror', () => { satLayer.remove(); streetLayer.addTo(map); });
     }
     initMap();
 
@@ -305,68 +311,255 @@
       const code = props.Code || props.code || props['كود'] || props['كود_الطلب'] || '228390/65';
       document.getElementById('cell-code').innerText = code;
       document.getElementById('cell-name').innerText = props.Name || props.name || props['الاسم'] || 'عبد الرحيم محمد سعيد';
-      document.getElementById('cell-area').innerText = parseFloat(props.Area || turf.area(feature)).toFixed(2);
-      
-      let points = (feature.geometry.type === 'MultiPolygon') ? feature.geometry.coordinates[0][0].slice(0,-1) : feature.geometry.coordinates[0].slice(0,-1);
-      
+      document.getElementById('cell-nid').innerText = props.NID || props.nid || props['الرقم_القومي'] || '26503172700594';
+      document.getElementById('cell-loc').innerText = props.Location || props.loc || props['موقع_الارض'] || 'مركز دشنا';
+      document.getElementById('cell-center').innerText = props.Center || props['المركز'] || 'قنا';
+      document.getElementById('cell-activity').innerText = props.Activity || props['النشاط'] || 'زراعى';
+
+      let rawArea = props.Area || props.area || props['المساحة'] || turf.area(feature);
+      let areaFormatted = parseFloat(rawArea).toFixed(2);
+      document.getElementById('cell-area').innerText = areaFormatted;
+      document.getElementById('cell-unit').innerText = props.Unit || props.unit || props['الوحدة'] || 'م²';
+
+      let coords = feature.geometry.coordinates[0];
+      if (feature.geometry.type === 'MultiPolygon') coords = feature.geometry.coordinates[0][0];
+      let points = coords.slice(0, -1);
+
       const coordsWrapper = document.getElementById('coordsTableWrapper');
       coordsWrapper.innerHTML = '';
-      
-      // التعديل: التقسيم يبدأ عند تجاوز 6 نقاط
+
       if (points.length <= 6) {
-        let h = `<table class="coords-table"><thead><tr><th>رقم</th><th>خط الطول</th><th>دائرة العرض</th><th>الكود</th></tr></thead><tbody>`;
-        points.forEach((p, i) => h += `<tr><td>${i+1}</td><td>${p[0].toFixed(6)}</td><td>${p[1].toFixed(6)}</td><td>${code}</td></tr>`);
-        coordsWrapper.innerHTML = h + `</tbody></table>`;
+        let tableHTML = `
+          <table class="coords-table">
+            <thead>
+              <tr>
+                <th style="width: 15%;">رقم النقطة</th>
+                <th style="width: 28%;">خط الطول</th>
+                <th style="width: 28%;">دائرة العرض</th>
+                <th style="width: 29%;">كود الطلب</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        points.forEach((pt, idx) => {
+          tableHTML += `<tr><td>${idx + 1}</td><td>${pt[0].toFixed(6)}</td><td>${pt[1].toFixed(6)}</td><td>${code}</td></tr>`;
+        });
+        tableHTML += `</tbody></table>`;
+        coordsWrapper.innerHTML = tableHTML;
       } else {
         const mid = Math.ceil(points.length / 2);
-        const h1 = points.slice(0, mid), h2 = points.slice(mid);
-        let h = `<div class="split-tables-container"><table class="coords-table small-text"><thead><tr><th>رقم</th><th>طول</th><th>عرض</th></tr></thead><tbody>`;
-        h1.forEach((p, i) => h += `<tr><td>${i+1}</td><td>${p[0].toFixed(6)}</td><td>${p[1].toFixed(6)}</td></tr>`);
-        h += `</tbody></table><table class="coords-table small-text"><thead><tr><th>رقم</th><th>طول</th><th>عرض</th></tr></thead><tbody>`;
-        h2.forEach((p, i) => h += `<tr><td>${mid+i+1}</td><td>${p[0].toFixed(6)}</td><td>${p[1].toFixed(6)}</td></tr>`);
-        coordsWrapper.innerHTML = h + `</tbody></table></div>`;
+        const firstHalf = points.slice(0, mid);
+        const secondHalf = points.slice(mid);
+
+        const buildSubTable = (pts, startIndex) => {
+          let html = `
+            <table class="coords-table small-text">
+              <thead>
+                <tr>
+                  <th style="width: 18%;">رقم</th>
+                  <th style="width: 41%;">خط الطول</th>
+                  <th style="width: 41%;">دائرة العرض</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+          pts.forEach((pt, i) => {
+            html += `<tr><td>${startIndex + i + 1}</td><td>${pt[0].toFixed(6)}</td><td>${pt[1].toFixed(6)}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+          return html;
+        };
+
+        let containerHTML = `<div class="split-tables-container">`;
+        containerHTML += buildSubTable(firstHalf, 0);
+        containerHTML += buildSubTable(secondHalf, mid);
+        containerHTML += `</div>`;
+
+        coordsWrapper.innerHTML = containerHTML;
       }
 
       if (polygonLayer) map.removeLayer(polygonLayer);
-      polygonLayer = L.geoJSON(feature, { style: { color: '#ff0000', weight: 3.5 } }).addTo(map);
-      map.fitBounds(polygonLayer.getBounds(), { padding: [15, 15] });
-      renderGradientQR(`https://maps.google.com/?q=${turf.centerOfMass(feature).geometry.coordinates[1].toFixed(6)},${turf.centerOfMass(feature).geometry.coordinates[0].toFixed(6)}`);
-      drawCroquis(points, document.getElementById('cell-area').innerText, "م²");
+      polygonLayer = L.geoJSON(feature, { style: { color: '#ff0000', weight: 3.5, fillColor: '#ff0000', fillOpacity: 0.15 } }).addTo(map);
+      map.fitBounds(polygonLayer.getBounds(), { padding: [15, 15], maxZoom: 21 });
+
+      const center = turf.centerOfMass(feature).geometry.coordinates;
+      renderGradientQR(`https://maps.google.com/?q=${center[1].toFixed(6)},${center[0].toFixed(6)}`);
+
+      drawCroquis(points, areaFormatted, document.getElementById('cell-unit').innerText);
     }
 
-    function drawCroquis(points, area, unit) {
+    function drawCroquis(points, areaVal, unitVal) {
       const canvas = document.getElementById('croquisCanvas');
       const ctx = canvas.getContext('2d');
-      ctx.clearRect(0,0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       if (!points || points.length === 0) return;
-      // [تم تبسيط الدالة لضمان استقرار الرسم]
+
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      points.forEach(p => { minX=Math.min(minX,p[0]); maxX=Math.max(maxX,p[0]); minY=Math.min(minY,p[1]); maxY=Math.max(maxY,p[1]); });
-      const pad = 38, sc = Math.min((canvas.width-pad*2)/(maxX-minX||.0001), (canvas.height-pad*2)/(maxY-minY||.0001));
-      const getX = p => (canvas.width - (maxX-minX)*sc)/2 + (p[0]-minX)*sc;
-      const getY = p => canvas.height - ((canvas.height - (maxY-minY)*sc)/2 + (p[1]-minY)*sc);
-      ctx.beginPath(); ctx.strokeStyle="#000"; ctx.lineWidth=2.5;
-      points.forEach((p,i) => i==0 ? ctx.moveTo(getX(p),getY(p)) : ctx.lineTo(getX(p),getY(p)));
-      ctx.closePath(); ctx.stroke();
-      points.forEach((p,i) => { ctx.fillStyle="#b00"; ctx.fillRect(getX(p)-4,getY(p)-4,8,8); ctx.fillStyle="#000"; ctx.fillText(i+1, getX(p)+6, getY(p)-4); });
-      ctx.fillText(area + " " + unit, canvas.width/2, canvas.height/2);
+      points.forEach(p => {
+        if (p[0] < minX) minX = p[0];
+        if (p[0] > maxX) maxX = p[0];
+        if (p[1] < minY) minY = p[1];
+        if (p[1] > maxY) maxY = p[1];
+      });
+
+      const pad = 38;
+      const availW = canvas.width - pad * 2;
+      const availH = canvas.height - pad * 2;
+      const geoW = maxX - minX || 0.00001;
+      const geoH = maxY - minY || 0.00001;
+
+      const scale = Math.min(availW / geoW, availH / geoH);
+      const shapeW = geoW * scale;
+      const shapeH = geoH * scale;
+      const offsetX = (canvas.width - shapeW) / 2;
+      const offsetY = (canvas.height - shapeH) / 2;
+
+      const getX = (lon) => offsetX + (lon - minX) * scale;
+      const getY = (lat) => canvas.height - (offsetY + (lat - minY) * scale);
+
+      ctx.beginPath();
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 2.5;
+      points.forEach((p, i) => {
+        const x = getX(p[0]);
+        const y = getY(p[1]);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.stroke();
+
+      let sumX = 0, sumY = 0;
+      points.forEach((p, i) => {
+        const x = getX(p[0]);
+        const y = getY(p[1]);
+        sumX += x;
+        sumY += y;
+
+        ctx.fillStyle = "#b30000";
+        ctx.fillRect(x - 4.5, y - 4.5, 9, 9);
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 4.5, y - 4.5, 9, 9);
+
+        ctx.fillStyle = "#000000";
+        ctx.font = "bold 13px 'Simplified Arabic', Tahoma, Arial";
+        ctx.fillText(i + 1, x + 6, y - 6);
+      });
+
+      const polyCenterX = sumX / points.length;
+      const polyCenterY = sumY / points.length;
+
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillRect(polyCenterX - 25, polyCenterY - 15, 50, 30);
+      
+      ctx.fillStyle = "#000000";
+      ctx.font = "bold 14px 'Simplified Arabic', Tahoma, Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`${areaVal}`, polyCenterX, polyCenterY - 8);
+      ctx.fillText(`${unitVal}`, polyCenterX, polyCenterY + 8);
     }
-    
+
     async function captureCertificateCanvas() {
-      await new Promise(r => setTimeout(r, 450));
-      return await html2canvas(document.getElementById('certificate-wrapper'), { scale: 2, useCORS: true, allowTaint: false });
+      // رفعنا زمن الانتظار لـ 1200 مللي ثانية لضمان تحميل الخريطة
+      await new Promise(r => setTimeout(r, 1200));
+      const element = document.getElementById('certificate-wrapper');
+      return await html2canvas(element, { scale: 2, useCORS: true, allowTaint: false, logging: false });
     }
-    
+
+    function setControlsDisabled(disabled) {
+      document.querySelectorAll('.btn').forEach(btn => btn.disabled = disabled);
+    }
+
+    function updateProgress(current, total, text) {
+      const pContainer = document.getElementById('progressContainer');
+      const pBar = document.getElementById('progressBar');
+      const pText = document.getElementById('progressText');
+
+      if (current === 0 && total === 0) {
+        pContainer.style.display = 'none';
+        return;
+      }
+      pContainer.style.display = 'block';
+      const pct = Math.round((current / total) * 100);
+      pBar.style.width = `${pct}%`;
+      pText.innerText = `${text} (${current} / ${total}) - ${pct}%`;
+    }
+
     async function exportCurrentPDF() {
-      const canvas = await captureCertificateCanvas();
-      const pdf = new jspdf.jsPDF('landscape', 'pt', 'a4');
-      pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
-      pdf.save(`شهادة_${document.getElementById('cell-code').innerText.replace('/','_')}.pdf`);
-      logActivity("PDF فردي", 1);
+      try {
+        const { jsPDF } = window.jspdf;
+        const canvas = await captureCertificateCanvas();
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const pdf = new jsPDF('landscape', 'pt', 'a4');
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+        const code = document.getElementById('cell-code').innerText.replace('/', '_');
+        pdf.save(`شهادة_تقنين_${code}.pdf`);
+        logActivity("استخراج PDF فردي", 1);
+      } catch (err) { alert("حدث خطأ أثناء استخراج PDF: " + err.message); }
     }
-    
-    // (باقي دوال التصدير تعتمد على نفس captureCertificateCanvas و logActivity)
-    async function exportCurrentImage() { const c = await captureCertificateCanvas(); const a = document.createElement('a'); a.download = 'شهادة.png'; a.href = c.toDataURL('image/png'); a.click(); logActivity("صورة", 1); }
+
+    async function exportCurrentImage() {
+      try {
+        const canvas = await captureCertificateCanvas();
+        const code = document.getElementById('cell-code').innerText.replace('/', '_');
+        const link = document.createElement('a');
+        link.download = `شهادة_تقنين_${code}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        logActivity("استخراج صورة فردية", 1);
+      } catch (err) { alert("حدث خطأ أثناء استخراج الصورة: " + err.message); }
+    }
+
+    async function exportAllPDFs() {
+      if (!geojsonData || geojsonData.length === 0) return alert("يرجى رفع ملف أولاً!");
+      try {
+        setControlsDisabled(true);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('landscape', 'pt', 'a4');
+        const pdfW = pdf.internal.pageSize.getWidth();
+        const pdfH = pdf.internal.pageSize.getHeight();
+        const total = geojsonData.length;
+
+        for (let i = 0; i < total; i++) {
+          currentIndex = i;
+          renderCurrentFeature();
+          updateProgress(i + 1, total, "جاري إنشاء صفحات PDF");
+          const canvas = await captureCertificateCanvas();
+          if (i > 0) pdf.addPage('a4', 'landscape');
+          pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pdfW, pdfH);
+        }
+        updateProgress(total, total, "جاري حفظ الملف المجمع...");
+        pdf.save(`جميع_شهادات_التقنين_${total}.pdf`);
+        logActivity("استخراج PDF مجمع", total);
+      } catch (err) { alert("حدث خطأ: " + err.message); } 
+      finally { setTimeout(() => { updateProgress(0, 0, ""); setControlsDisabled(false); }, 1000); }
+    }
+
+    async function exportAllImagesZip() {
+      if (!geojsonData || geojsonData.length === 0) return alert("يرجى رفع ملف أولاً!");
+      try {
+        setControlsDisabled(true);
+        const zip = new JSZip();
+        const total = geojsonData.length;
+
+        for (let i = 0; i < total; i++) {
+          currentIndex = i;
+          renderCurrentFeature();
+          updateProgress(i + 1, total, "جاري تجهيز الصور");
+          const canvas = await captureCertificateCanvas();
+          const code = document.getElementById('cell-code').innerText.replace('/', '_');
+          zip.file(`شهادة_${code}_${i+1}.png`, canvas.toDataURL('image/png').replace(/^data:image\/(png|jpg);base64,/, ""), { base64: true });
+        }
+        updateProgress(total, total, "جاري ضغط الملفات...");
+        const blob = await zip.generateAsync({ type: "blob" });
+        saveAs(blob, `جميع_شهادات_التقنين_صور_${total}.zip`);
+        logActivity("استخراج صور ZIP", total);
+      } catch (err) { alert("حدث خطأ: " + err.message); } 
+      finally { setTimeout(() => { updateProgress(0, 0, ""); setControlsDisabled(false); }, 1000); }
+    }
   </script>
 </body>
 </html>
