@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بيان إحداثيات طلب تقنين</title>
+
+  <!-- GIS Libraries -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+  <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+  
+  <!-- QR & Export Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800;900&display=swap');
+    * { box-sizing: border-box; font-family: 'Simplified Arabic', 'Traditional Arabic', 'Tajawal', Arial, sans-serif; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { background-color: #4a4d50; padding: 20px 0; display: flex; flex-direction: column; align-items: center; }
+
+    .control-panel { background: #ffffff; padding: 12px 20px; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 1040px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; direction: rtl; }
+    .panel-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+    .user-badge { font-size: 13px; font-weight: 800; color: #0056b3; background: #e7f1ff; padding: 4px 10px; border-radius: 4px; border: 1px solid #b8daff; }
+    .upload-box { display: flex; align-items: center; gap: 10px; }
+    input[type="file"] { display: none; }
+    .btn { padding: 6px 14px; border-radius: 4px; font-weight: 700; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-upload { background-color: #0056b3; color: white; }
+    .btn-single-pdf { background-color: #28a745; color: white; }
+    .btn-single-img { background-color: #17a2b8; color: white; }
+    .btn-all-pdf { background-color: #c82333; color: white; }
+    .btn-all-img { background-color: #e67e22; color: white; }
+    .btn-excel { background-color: #107c41; color: white; }
+    .btn-nav { background-color: #212529; color: white; }
+    .btn:hover:not(:disabled) { filter: brightness(0.92); }
+
+    #progressContainer { display: none; width: 100%; background-color: #e9ecef; border-radius: 4px; overflow: hidden; }
+    #progressBar { width: 0%; height: 8px; background-color: #0056b3; transition: width 0.2s ease; }
+    #progressText { font-size: 11px; font-weight: 700; color: #333; text-align: center; display: block; margin-top: 2px; }
+
+    #certificate-wrapper { width: 1040px; height: 735px; background: white; padding: 10px 12px; box-shadow: 0 0 25px rgba(0,0,0,0.5); border: 2.5px solid #000; position: relative; direction: ltr; overflow: hidden; }
+    .inner-border-wrapper { border: 1.5px solid #000; height: 100%; padding: 6px 10px; display: flex; flex-direction: column; justify-content: space-between; }
+
+    .cert-header { display: grid; grid-template-columns: 280px 1fr 280px; align-items: center; border-bottom: 2px solid #000; padding-bottom: 4px; }
+    .header-left { display: flex; align-items: center; justify-content: flex-start; gap: 10px; font-size: 13.5px; font-weight: 800; direction: ltr; }
+    .header-left img { width: 46px; height: 46px; object-fit: contain; }
+    .header-center { text-align: center; direction: rtl; }
+    .header-center h1 { font-size: 27px; font-weight: 900; color: #000; margin: 0; }
+    .header-right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-size: 13.5px; font-weight: 800; direction: ltr; }
+    .header-right img { width: 46px; height: 46px; object-fit: contain; }
+
+    .meta-table { width: 100%; border-collapse: collapse; margin-top: 5px; text-align: center; direction: ltr; }
+    .meta-table th, .meta-table td { border: 1.5px solid #000; padding: 2px; }
+    .meta-table th { background-color: #9ea3ac; font-size: 13.5px; font-weight: 800; color: #000; height: 22px; }
+    .meta-table td { font-size: 12px; font-weight: 700; color: #000; height: 22px; }
+
+    .middle-maps-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 5px; height: 295px; direction: ltr; }
+    .map-frame-box { border: 1.5px solid #000; display: flex; flex-direction: column; background: #fff; padding: 3px; position: relative; }
+    .map-title-bar { background-color: #cfd4dc; text-align: center; font-size: 13px; font-weight: 800; padding: 2px 0; border: 1.5px solid #000; margin-bottom: 3px; color: #000; direction: rtl; }
+    .map-inner-container { flex: 1; border: 1.5px solid #000; position: relative; overflow: hidden; background-color: #fff; }
+    #satelliteMap, #croquisCanvas { width: 100%; height: 100%; display: block; }
+
+    .bottom-section { display: grid; grid-template-columns: 1.45fr 0.95fr; gap: 12px; margin-top: 5px; align-items: stretch; direction: ltr; height: 185px; }
+    .coords-table-wrapper { border: 1.5px solid #000; height: 100%; display: flex; align-items: flex-start; background: #fff; overflow: hidden; }
+    .coords-table { width: 100%; border-collapse: collapse; text-align: center; direction: ltr; }
+    .coords-table th, .coords-table td { border: 1.5px solid #000; padding: 2px 3px; }
+    .coords-table th { background-color: #9ea3ac; font-size: 13px; font-weight: 800; color: #000; height: 22px; }
+    .coords-table td { font-size: 11.5px; font-weight: 700; color: #000; height: 19px; }
+
+    .split-tables-container { display: flex; width: 100%; height: 100%; direction: ltr; }
+    .split-tables-container table { width: 50%; height: fit-content; border-collapse: collapse; }
+    .split-tables-container table:first-child { border-right: 1.5px solid #000; }
+    .small-text th { font-size: 10.5px !important; padding: 1px !important; height: 16px !important; }
+    .small-text td { font-size: 10px !important; padding: 1px !important; height: 14px !important; }
+
+    .auth-box-container { border: 1.5px solid #000; display: grid; grid-template-columns: 130px 1fr; padding: 4px 8px; align-items: center; gap: 8px; background: #fff; direction: ltr; }
+    #qrcodeContainer { width: 125px; height: 125px; display: flex; align-items: center; justify-content: center; }
+    #qrCanvas { width: 120px; height: 120px; display: block; }
+
+    .auth-signatures-col { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; padding: 2px 0; direction: rtl; }
+    .survey-logo { width: 180px; height: 100px; object-fit: contain; }
+    .stamp-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; direction: rtl; }
+    .stamp-circle { width: 38px; height: 38px; border: 1.5px solid #000; border-radius: 50%; }
+
+    .cert-footer { border: 1.5px solid #000; margin-top: 5px; padding: 2px 10px; font-size: 10.5px; font-weight: 800; display: flex; justify-content: space-between; color: #000; direction: ltr; }
+  </style>
+</head>
+<body>
+
+  <div class="control-panel">
+    <div class="panel-row">
+      <div class="upload-box">
+        <label class="btn btn-upload" for="fileInput">📁 رفع ملف (GeoJSON أو Shapefile.zip)</label>
+        <input type="file" id="fileInput" accept=".geojson,.json,.zip">
+        <span id="fileName" style="font-size: 13px; color: #555;">لم يتم اختيار ملف</span>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <span class="user-badge" id="userDisplay">المستخدم: -</span>
+        <button class="btn btn-nav" onclick="navigateFeature(-1)">السابق</button>
+        <span id="recordIndicator" style="font-weight: 800; font-size: 13px; min-width: 60px; text-align: center;">0 / 0</span>
+        <button class="btn btn-nav" onclick="navigateFeature(1)">التالي</button>
+      </div>
+    </div>
+    <div class="panel-row" style="border-top: 1px solid #dee2e6; padding-top: 8px;">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="btn btn-single-pdf" onclick="exportCurrentPDF()">📄 استخراج الشهادة (PDF)</button>
+        <button class="btn btn-single-img" onclick="exportCurrentImage()">🖼️ استخراج الشهادة (صورة)</button>
+        <button class="btn btn-all-pdf" onclick="exportAllPDFs()">📚 استخراج كل الشهادات (PDF مجمع)</button>
+        <button class="btn btn-all-img" onclick="exportAllImagesZip()">📦 استخراج كل الشهادات (صور ZIP)</button>
+
+      </div>
+    </div>
+    <div id="progressContainer"><div id="progressBar"></div><span id="progressText">جاري المعالجة...</span></div>
+  </div>
+
+  <div id="certificate-wrapper">
+    <div class="inner-border-wrapper">
+      <div class="cert-header">
+        <div class="header-left">
+          <img src="https://raw.githubusercontent.com/WaleedAdel2002/qena_network_center_Taqneen/bfc8d2b7412a46af82051f519f74e6f18a3f987e/images/LOGO11%20.png" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="this.src='images/LOGO11.png'" alt="مركز معلومات شبكات المرافق">
+          <span>مركز معلومات شبكات المرافق</span>
+        </div>
+        <div class="header-center"><h1>بيان إحداثيات طلب تقنين</h1></div>
+        <div class="header-right">
+          <span>ديوان عام محافظة قنا</span>
+          <img src="https://raw.githubusercontent.com/WaleedAdel2002/qena_network_center_Taqneen/bfc8d2b7412a46af82051f519f74e6f18a3f987e/images/qena_logo.png" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="this.style.display='none'" alt="محافظة قنا">
+        </div>
+      </div>
+
+      <table class="meta-table">
+        <thead>
+          <tr><th>الوحدة</th><th>المساحة</th><th>النشاط</th><th>المركز</th><th>موقع الارض</th><th>الرقم القومى</th><th>الاسم</th><th>الكود</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td id="cell-unit">م²</td><td id="cell-area">0.00</td><td id="cell-activity">زراعى</td><td id="cell-center">قنا</td><td id="cell-loc">مركز دشنا</td><td id="cell-nid">-</td><td id="cell-name">-</td><td id="cell-code">-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="middle-maps-container">
+        <div class="map-frame-box">
+          <div class="map-title-bar">الموقع علي الصورة الفضائية</div>
+          <div class="map-inner-container"><div id="satelliteMap"></div></div>
+        </div>
+        <div class="map-frame-box">
+          <div class="map-title-bar">كروكي الموقع</div>
+          <div class="map-inner-container"><canvas id="croquisCanvas" width="480" height="255"></canvas></div>
+        </div>
+      </div>
+
+      <div class="bottom-section">
+        <div class="coords-table-wrapper" id="coordsTableWrapper"></div>
+        <div class="auth-box-container">
+          <div id="qrcodeContainer"><canvas id="qrCanvas" width="240" height="240"></canvas></div>
+          <div class="auth-signatures-col">
+            <img class="survey-logo" 
+                 src="https://raw.githubusercontent.com/WaleedAdel2002/qena_network_center_Taqneen/bfc8d2b7412a46af82051f519f74e6f18a3f987e/images/survey_logo.png" 
+                 crossorigin="anonymous"
+                 referrerpolicy="no-referrer"
+                 onerror="this.src='https://upload.wikimedia.org/wikipedia/ar/thumb/9/91/Egyptian_General_Survey_Authority_Logo.png/250px-Egyptian_General_Survey_Authority_Logo.png';" 
+                 alt="الهيئة العامة للمساحة">
+            <div style="font-size: 13px; font-weight: 800; text-align: center; width: 100%;">يعتمد</div>
+            <div class="stamp-row">
+              <div class="stamp-circle"></div>
+              <span style="font-size: 12px; font-weight: 800;">خاتم الشعار</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cert-footer">
+        <span>• لا يعتد بهذه الشهادة كمستند ملكية ولا يترتب عليها أثر قانوني</span>
+        <span>• تم الإرشاد عن الموقع بمعرفة مقدم الطلب دون أدنى مسؤولية على مركز معلومات شبكات المرافق بقنا</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="hiddenQR" style="display:none;"></div>
+
+  <script>
+    const DRIVE_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbyzclJ8DL5X4AFftQVdJT9WMW2lM1L_eKHggvJ0miWNCAMBvW2THGvftZp7VPzskOM/exec";
+    let currentUser = localStorage.getItem('survey_app_user') || '';
+    let geojsonData = null;
+    let currentUploadedFileName = '';
+    let currentIndex = 0;
+    let map = null;
+    let polygonLayer = null;
+    let sessionLogs = JSON.parse(localStorage.getItem('survey_session_logs') || '[]');
+
+    function autoBackupToDrive(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        fetch(DRIVE_UPLOAD_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName: file.name, mimeType: file.type || "application/octet-stream", fileContent: e.target.result.split(',')[1] })
+        }).catch(err => console.error("Drive Auto-Backup Failed:", err));
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function logActivity(actionType, count = 1) {
+      sessionLogs.push({ timestamp: new Date().toLocaleString('ar-EG'), user: currentUser, file: currentUploadedFileName, count: count, action: actionType });
+      localStorage.setItem('survey_session_logs', JSON.stringify(sessionLogs));
+    }
+
+    function exportAuditExcel() {
+      if (sessionLogs.length === 0) return alert("لا يوجد أنشطة مسجلة!");
+      const ws = XLSX.utils.json_to_sheet(sessionLogs);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "سجل الإنجاز");
+      XLSX.writeFile(wb, `تقرير_الاستخدام_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    function checkUser() {
+      if (!currentUser) {
+        currentUser = prompt("يرجى إدخال اسم المستخدم:") || "مستخدم غير معروف";
+        localStorage.setItem('survey_app_user', currentUser);
+      }
+      document.getElementById('userDisplay').innerText = `المستخدم: ${currentUser}`;
+    }
+
+    function initMap() {
+      map = L.map('satelliteMap', { zoomControl: false, attributionControl: false, preferCanvas: true }).setView([26.1274, 32.3466], 17);
+      
+      const satLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        maxZoom: 22,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        crossOrigin: 'anonymous'
+      });
+      
+      satLayer.addTo(map);
+    }
+    initMap();
+
+    function renderGradientQR(text) {
+      const hiddenContainer = document.getElementById('hiddenQR');
+      hiddenContainer.innerHTML = '';
+      const qr = new QRCode(hiddenContainer, { text: text, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.H });
+      setTimeout(() => {
+        const qrCanvasSrc = hiddenContainer.querySelector('canvas');
+        if (!qrCanvasSrc) return;
+        const mainCanvas = document.getElementById('qrCanvas');
+        const ctx = mainCanvas.getContext('2d');
+        const size = mainCanvas.width;
+        ctx.clearRect(0, 0, size, size);
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, '#d90429'); gradient.addColorStop(1, '#000000');
+        const srcCtx = qrCanvasSrc.getContext('2d');
+        const imgData = srcCtx.getImageData(0, 0, size, size);
+        const data = imgData.data;
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = gradient;
+        for (let y = 0; y < size; y += 4) {
+          for (let x = 0; x < size; x += 4) {
+            const index = (y * size + x) * 4;
+            if (data[index] < 128) ctx.fillRect(x, y, 4, 4);
+          }
+        }
+        const center = size / 2;
+        const logo = new Image();
+        logo.crossOrigin = "anonymous";
+        logo.src = "https://raw.githubusercontent.com/WaleedAdel2002/qena_network_center_Taqneen/bfc8d2b7412a46af82051f519f74e6f18a3f987e/images/LOGO11%20.png";
+        logo.onload = () => { ctx.drawImage(logo, center - (size * 0.16), center - (size * 0.16), size * 0.32, size * 0.32); };
+      }, 50);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => { checkUser(); renderGradientQR("https://maps.google.com/?q=26.1274,32.3466"); });
+
+    document.getElementById('fileInput').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      currentUploadedFileName = file.name;
+      document.getElementById('fileName').innerText = file.name;
+      autoBackupToDrive(file);
+      if (file.name.endsWith('.zip')) {
+        const buffer = await file.arrayBuffer();
+        shp(buffer).then(loadGeoJSON).catch(err => alert("خطأ في قراءة الملف: " + err.message));
+      } else {
+        const reader = new FileReader();
+        reader.onload = e => loadGeoJSON(JSON.parse(e.target.result));
+        reader.readAsText(file);
+      }
+    });
+
+    function loadGeoJSON(data) {
+      geojsonData = data.features ? data.features.filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')) : [];
+      if (geojsonData.length === 0) return alert("لا يوجد مضلعات!");
+      currentIndex = 0;
+      renderCurrentFeature();
+      logActivity("رفع ملف", geojsonData.length);
+    }
+
+    function navigateFeature(step) {
+      if (!geojsonData || geojsonData.length === 0) return;
+      currentIndex = Math.max(0, Math.min(geojsonData.length - 1, currentIndex + step));
+      renderCurrentFeature();
+    }
+
+    function renderCurrentFeature() {
+      const feature = geojsonData[currentIndex];
+      const props = feature.properties || {};
+      document.getElementById('recordIndicator').innerText = `${currentIndex + 1} / ${geojsonData.length}`;
+      const code = props.Code || props.code || props['كود'] || props['كود_الطلب'] || '228390/65';
+      document.getElementById('cell-code').innerText = code;
+      document.getElementById('cell-name').innerText = props.Name || props.name || props['الاسم'] || 'عبد الرحيم محمد سعيد';
+      document.getElementById('cell-nid').innerText = props.NID || props.nid || props['الرقم_القومي'] || '26503172700594';
+      document.getElementById('cell-loc').innerText = props.Location || props.loc || props['Sheikhah'] || 'مركز دشنا';
+      document.getElementById('cell-center').innerText = props.Center || props['المركز'] || 'قنا';
+      document.getElementById('cell-activity').innerText = props.Activity || props['النشاط'] || 'زراعى';
+
+      let rawArea = props.Area || props.area || props['المساحة'] || turf.area(feature);
+      let areaFormatted = parseFloat(rawArea).toFixed(2);
+      document.getElementById('cell-area').innerText = areaFormatted;
+      document.getElementById('cell-unit').innerText = props.Unit || props.unit || props['الوحدة'] || 'م²';
+
+let coords = feature.geometry.coordinates[0];
+      if (feature.geometry.type === 'MultiPolygon') coords = feature.geometry.coordinates[0][0];
+      let points = coords.slice(0, -1);
+
+      const coordsWrapper = document.getElementById('coordsTableWrapper');
+      coordsWrapper.innerHTML = '';
+
+      // تحديد عدد الأعمدة تلقائياً بناءً على عدد النقاط لضمان عدم التداخل وحсь الـ 30+ نقطة براحة تامة
+      let colsCount = 1;
+      if (points.length > 8 && points.length <= 16) {
+        colsCount = 2;
+      } else if (points.length > 16 && points.length <= 27) {
+        colsCount = 3;
+      } else if (points.length > 27) {
+        colsCount = 4; // مثالي للقطع التي تصل إلى 35-40 نقطة
+      }
+
+      if (colsCount === 1) {
+        let tableHTML = `
+          <table class="coords-table">
+            <thead>
+              <tr>
+                <th style="width: 15%;">رقم النقطة</th>
+                <th style="width: 28%;">خط الطول</th>
+                <th style="width: 28%;">دائرة العرض</th>
+                <th style="width: 29%;">كود الطلب</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        points.forEach((pt, idx) => {
+          tableHTML += `<tr><td>${idx + 1}</td><td>${pt[0].toFixed(6)}</td><td>${pt[1].toFixed(6)}</td><td>${code}</td></tr>`;
+        });
+        tableHTML += `</tbody></table>`;
+        coordsWrapper.innerHTML = tableHTML;
+      } else {
+        let chunkSize = Math.ceil(points.length / colsCount);
+        let containerHTML = `<div class="split-tables-container" style="display: flex; width: 100%; height: 100%; direction: ltr;">`;
+
+        for (let c = 0; c < colsCount; c++) {
+          let chunkPts = points.slice(c * chunkSize, (c + 1) * chunkSize);
+          let startIndex = c * chunkSize;
+
+          containerHTML += `
+            <table class="coords-table small-text" style="width: ${100 / colsCount}%; border-right: ${c > 0 ? '1.5px solid #000' : 'none'};">
+              <thead>
+                <tr>
+                  <th style="width: 20%;">رقم</th>
+                  <th style="width: 40%;">خط الطول</th>
+                  <th style="width: 40%;">دائرة العرض</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+          chunkPts.forEach((pt, i) => {
+            containerHTML += `<tr><td>${startIndex + i + 1}</td><td>${pt[0].toFixed(6)}</td><td>${pt[1].toFixed(6)}</td></tr>`;
+          });
+          containerHTML += `</tbody></table>`;
+        }
+
+        containerHTML += `</div>`;
+        coordsWrapper.innerHTML = containerHTML;
+      }
+      if (polygonLayer) map.removeLayer(polygonLayer);
+      polygonLayer = L.geoJSON(feature, { style: { color: '#ff0000', weight: 3.5, fillColor: '#ff0000', fillOpacity: 0.15 } }).addTo(map);
+
+      if (parseFloat(rawArea) < 200) {
+          const centerPt = polygonLayer.getBounds().getCenter();
+          map.setView(centerPt, 20); 
+      } else {
+          const bounds = polygonLayer.getBounds();
+          map.fitBounds(bounds, { 
+              padding: [60, 60],
+              maxZoom: 18 
+          });
+      }
+
+      const center = turf.centerOfMass(feature).geometry.coordinates;
+      renderGradientQR(`https://maps.google.com/?q=${center[1].toFixed(6)},${center[0].toFixed(6)}`);
+
+      drawCroquis(points, areaFormatted, document.getElementById('cell-unit').innerText);
+    }
+
+    function drawCroquis(points, areaVal, unitVal) {
+      const canvas = document.getElementById('croquisCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!points || points.length === 0) return;
+
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      points.forEach(p => {
+        if (p[0] < minX) minX = p[0];
+        if (p[0] > maxX) maxX = p[0];
+        if (p[1] < minY) minY = p[1];
+        if (p[1] > maxY) maxY = p[1];
+      });
+
+      const pad = 38;
+      const availW = canvas.width - pad * 2;
+      const availH = canvas.height - pad * 2;
+      const geoW = maxX - minX || 0.00001;
+      const geoH = maxY - minY || 0.00001;
+
+      const scale = Math.min(availW / geoW, availH / geoH);
+      const shapeW = geoW * scale;
+      const shapeH = geoH * scale;
+      const offsetX = (canvas.width - shapeW) / 2;
+      const offsetY = (canvas.height - shapeH) / 2;
+
+      const getX = (lon) => offsetX + (lon - minX) * scale;
+      const getY = (lat) => canvas.height - (offsetY + (lat - minY) * scale);
+
+      ctx.beginPath();
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 2.5;
+      points.forEach((p, i) => {
+        const x = getX(p[0]);
+        const y = getY(p[1]);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.stroke();
+
+      let sumX = 0, sumY = 0;
+      points.forEach((p, i) => {
+        const x = getX(p[0]);
+        const y = getY(p[1]);
+        sumX += x;
+        sumY += y;
+
+        ctx.fillStyle = "#b30000";
+        ctx.fillRect(x - 4.5, y - 4.5, 9, 9);
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 4.5, y - 4.5, 9, 9);
+
+        ctx.fillStyle = "#000000";
+        ctx.font = "bold 13px 'Simplified Arabic', Tahoma, Arial";
+        ctx.fillText(i + 1, x + 6, y - 6);
+      });
+
+      const polyCenterX = sumX / points.length;
+      const polyCenterY = sumY / points.length;
+
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillRect(polyCenterX - 25, polyCenterY - 15, 50, 30);
+      
+      ctx.fillStyle = "#000000";
+      ctx.font = "bold 14px 'Simplified Arabic', Tahoma, Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`${areaVal}`, polyCenterX, polyCenterY - 8);
+      ctx.fillText(`${unitVal}`, polyCenterX, polyCenterY + 8);
+    }
+
+    async function captureCertificateCanvas() {
+      await new Promise(r => setTimeout(r, 1200));
+      const element = document.getElementById('certificate-wrapper');
+      return await html2canvas(element, { scale: 2, useCORS: true, allowTaint: true, logging: false });
+    }
+
+    function setControlsDisabled(disabled) {
+      document.querySelectorAll('.btn').forEach(btn => btn.disabled = disabled);
+    }
+
+    function updateProgress(current, total, text) {
+      const pContainer = document.getElementById('progressContainer');
+      const pBar = document.getElementById('progressBar');
+      const pText = document.getElementById('progressText');
+
+      if (current === 0 && total === 0) {
+        pContainer.style.display = 'none';
+        return;
+      }
+      pContainer.style.display = 'block';
+      const pct = Math.round((current / total) * 100);
+      pBar.style.width = `${pct}%`;
+      pText.innerText = `${text} (${current} / ${total}) - ${pct}%`;
+    }
+
+    async function exportCurrentPDF() {
+      try {
+        const { jsPDF } = window.jspdf;
+        const canvas = await captureCertificateCanvas();
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const pdf = new jsPDF('landscape', 'pt', 'a4');
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+        const code = document.getElementById('cell-code').innerText.replace('/', '_');
+        pdf.save(`شهادة_تقنين_${code}.pdf`);
+        logActivity("استخراج PDF فردي", 1);
+      } catch (err) { alert("حدث خطأ أثناء استخراج PDF: " + err.message); }
+    }
+
+    async function exportCurrentImage() {
+      try {
+        const canvas = await captureCertificateCanvas();
+        const code = document.getElementById('cell-code').innerText.replace('/', '_');
+        const link = document.createElement('a');
+        link.download = `شهادة_تقنين_${code}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        logActivity("استخراج صورة فردية", 1);
+      } catch (err) { alert("حدث خطأ أثناء استخراج الصورة: " + err.message); }
+    }
+
+    async function exportAllPDFs() {
+      if (!geojsonData || geojsonData.length === 0) return alert("يرجى رفع ملف أولاً!");
+      try {
+        setControlsDisabled(true);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('landscape', 'pt', 'a4');
+        const pdfW = pdf.internal.pageSize.getWidth();
+        const pdfH = pdf.internal.pageSize.getHeight();
+        const total = geojsonData.length;
+
+        for (let i = 0; i < total; i++) {
+          currentIndex = i;
+          renderCurrentFeature();
+          updateProgress(i + 1, total, "جاري إنشاء صفحات PDF");
+          const canvas = await captureCertificateCanvas();
+          if (i > 0) pdf.addPage('a4', 'landscape');
+          pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pdfW, pdfH);
+        }
+        updateProgress(total, total, "جاري حفظ الملف المجمع...");
+        pdf.save(`جميع_شهادات_التقنين_${total}.pdf`);
+        logActivity("استخراج PDF مجمع", total);
+      } catch (err) { alert("حدث خطأ: " + err.message); } 
+      finally { setTimeout(() => { updateProgress(0, 0, ""); setControlsDisabled(false); }, 1000); }
+    }
+
+    async function exportAllImagesZip() {
+      if (!geojsonData || geojsonData.length === 0) return alert("يرجى رفع ملف أولاً!");
+      try {
+        setControlsDisabled(true);
+        const zip = new JSZip();
+        const total = geojsonData.length;
+
+        for (let i = 0; i < total; i++) {
+          currentIndex = i;
+          renderCurrentFeature();
+          updateProgress(i + 1, total, "جاري تجهيز الصور");
+          const canvas = await captureCertificateCanvas();
+          const code = document.getElementById('cell-code').innerText.replace('/', '_');
+          zip.file(`شهادة_${code}_${i+1}.png`, canvas.toDataURL('image/png').replace(/^data:image\/(png|jpg);base64,/, ""), { base64: true });
+        }
+        updateProgress(total, total, "جاري ضغط الملفات...");
+        const blob = await zip.generateAsync({ type: "blob" });
+        saveAs(blob, `جميع_شهادات_التقنين_صور_${total}.zip`);
+        logActivity("استخراج صور ZIP", total);
+      } catch (err) { alert("حدث خطأ: " + err.message); } 
+      finally { setTimeout(() => { updateProgress(0, 0, ""); setControlsDisabled(false); }, 1000); }
+    }
+  </script>
+</body>
+</html>
