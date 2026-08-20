@@ -139,7 +139,7 @@
         </thead>
         <tbody>
           <tr>
-            <td id="cell-unit">م²</td><td id="cell-area">0.00</td><td id="cell-activity">زراعى</td><td id="cell-center">قنا</td><td id="cell-loc">مركز دشنا</td><td id="cell-nid">-</td><td id="cell-name">-</td><td id="cell-code">-</td>
+            <td id="cell-unit">-</td><td id="cell-area">-</td><td id="cell-activity">-</td><td id="cell-center">-</td><td id="cell-loc">- </td><td id="cell-nid">-</td><td id="cell-name">-</td><td id="cell-code">-</td>
           </tr>
         </tbody>
       </table>
@@ -309,18 +309,19 @@
       const feature = geojsonData[currentIndex];
       const props = feature.properties || {};
       document.getElementById('recordIndicator').innerText = `${currentIndex + 1} / ${geojsonData.length}`;
-      const code = props.Code || props.code || props['كود'] || props['كود_الطلب'] || '228390/65';
+      const code = props.Code || props.id_no || props['كود'] || props['كود_الطلب'] || '228390/65';
       document.getElementById('cell-code').innerText = code;
       document.getElementById('cell-name').innerText = props.Name || props.name || props['الاسم'] || 'عبد الرحيم محمد سعيد';
-      document.getElementById('cell-nid').innerText = props.NID || props.nid || props['الرقم_القومي'] || '26503172700594';
-      document.getElementById('cell-loc').innerText = props.Location || props.loc || props['Sheikhah'] || 'مركز دشنا';
+      document.getElementById('cell-nid').innerText = props.Anational || props.nid || props['الرقم_القومي'] || '26503172700594';
+      document.getElementById('cell-loc').innerText = props.Sheikhah || props.loc || props['Sheikhah'] || 'مركز دشنا';
       document.getElementById('cell-center').innerText = props.Center || props['المركز'] || 'قنا';
-      document.getElementById('cell-activity').innerText = props.Activity || props['النشاط'] || 'زراعى';
+      document.getElementById('cell-activity').innerText = props.activity || props['النشاط'] || 'زراعى';
 
       let rawArea = props.Area || props.area || props['المساحة'] || turf.area(feature);
       let areaFormatted = parseFloat(rawArea).toFixed(2);
       document.getElementById('cell-area').innerText = areaFormatted;
-      document.getElementById('cell-unit').innerText = props.Unit || props.unit || props['الوحدة'] || 'م²';
+      document.getElementById('cell-unit').innerText = props.unit || props.unit || props['الوحدة'] || 'م²';
+
 
 let coords = feature.geometry.coordinates[0];
       if (feature.geometry.type === 'MultiPolygon') coords = feature.geometry.coordinates[0][0];
