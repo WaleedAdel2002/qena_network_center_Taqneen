@@ -113,7 +113,15 @@
         <button class="btn btn-single-img" onclick="exportCurrentImage()">🖼️ استخراج الشهادة (صورة)</button>
         <button class="btn btn-all-pdf" onclick="exportAllPDFs()">📚 استخراج كل الشهادات (PDF مجمع)</button>
         <button class="btn btn-all-img" onclick="exportAllImagesZip()">📦 استخراج كل الشهادات (صور ZIP)</button>
-
+<!-- أضف هذا الجزء داخل لوحة التحكم (Control Panel) -->
+<div class="panel-row" style="background: #f8f9fa; padding: 6px 10px; border-radius: 4px; border: 1px solid #ced4da;">
+  <div style="position: relative; width: 100%; display: flex; align-items: center; gap: 10px; direction: rtl;">
+    <label for="searchInput" style="font-weight: 800; font-size: 13px; color: #333;">🔍 بحث بالكود أو الاسم:</label>
+    <input type="text" id="searchInput" placeholder="اكتب الكود أو اسم المواطن للبحث..." autocomplete="off" 
+           style="flex: 1; padding: 6px 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 13px;">
+    <div id="autocomplete-list" style="position: absolute; top: 100%; right: 0; left: 0; background: #fff; border: 1px solid #ced4da; border-top: none; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></div>
+  </div>
+</div>
       </div>
     </div>
     <div id="progressContainer"><div id="progressBar"></div><span id="progressText">جاري المعالجة...</span></div>
@@ -309,13 +317,13 @@
       const feature = geojsonData[currentIndex];
       const props = feature.properties || {};
       document.getElementById('recordIndicator').innerText = `${currentIndex + 1} / ${geojsonData.length}`;
-      const code = props.Code || props.code || props['كود'] || props['كود_الطلب'] || '228390/65';
+      const code = props.Code || props.id_no || props['كود'] || props['كود_الطلب'] || '228390/65';
       document.getElementById('cell-code').innerText = code;
       document.getElementById('cell-name').innerText = props.Name || props.name || props['الاسم'] || 'عبد الرحيم محمد سعيد';
-      document.getElementById('cell-nid').innerText = props.NID || props.nid || props['الرقم_القومي'] || '26503172700594';
-      document.getElementById('cell-loc').innerText = props.Location || props.loc || props['Sheikhah'] || 'مركز دشنا';
+      document.getElementById('cell-nid').innerText = props.Anational || props.nid || props['الرقم_القومي'] || '26503172700594';
+      document.getElementById('cell-loc').innerText = props.Sheikhah || props.loc || props['Sheikhah'] || 'مركز دشنا';
       document.getElementById('cell-center').innerText = props.Center || props['المركز'] || 'قنا';
-      document.getElementById('cell-activity').innerText = props.Activity || props['النشاط'] || 'زراعى';
+      document.getElementById('cell-activity').innerText = props.activity || props['النشاط'] || 'زراعى';
 
       let rawArea = props.Area || props.area || props['المساحة'] || turf.area(feature);
       let areaFormatted = parseFloat(rawArea).toFixed(2);
@@ -570,6 +578,70 @@
       } catch (err) { alert("حدث خطأ: " + err.message); } 
       finally { setTimeout(() => { updateProgress(0, 0, ""); setControlsDisabled(false); }, 1000); }
     }
+// --- كود البحث المتقدم والإكمال التلقائي (يبحث في جميع الخصائص والكود والاسم) ---
+const searchInput = document.getElementById('searchInput');
+const autocompleteList = document.getElementById('autocomplete-list');
+
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        const val = this.value.trim().toLowerCase();
+        autocompleteList.innerHTML = '';
+        
+        if (!val || !geojsonData || geojsonData.length === 0) {
+            autocompleteList.style.display = 'none';
+            return;
+        }
+
+        let matchCount = 0;
+        geojsonData.forEach((feature, index) => {
+            const props = feature.properties || {};
+            
+            // دمج جميع قيم الخصائص في نص واحد للبحث الشامل (كود، اسم، رقم قومي، إلخ)
+            const allValuesStr = Object.values(props).join(' ').toLowerCase();
+            
+            // جلب الكود والاسم بشكل محدد للعرض في القائمة
+            const code = String(props.Code || props.code || props['كود'] || props['كود_الطلب'] || props.id_no || 'غير متوفر');
+            const name = String(props.Name || props.name || props['الاسم'] || 'بدون اسم');
+
+            // التحقق إذا كان النص المدخل موجوداً في أي من خصائص العنصر
+            if (allValuesStr.includes(val)) {
+                matchCount++;
+                if (matchCount <= 10) { // عرض أول 10 نتائج مطابقة فقط
+                    const itemDiv = document.createElement('div');
+                    itemDiv.style.padding = '8px 12px';
+                    itemDiv.style.cursor = 'pointer';
+                    itemDiv.style.borderBottom = '1px solid #eee';
+                    itemDiv.style.fontSize = '12px';
+                    itemDiv.style.fontWeight = '700';
+                    itemDiv.style.textAlign = 'right';
+                    itemDiv.style.backgroundColor = '#ffffff';
+                    itemDiv.innerHTML = `📌 <span style="color: #0056b3;">الكود: ${code}</span> | ${name}`;
+                    
+                    itemDiv.addEventListener('mouseover', () => { itemDiv.style.backgroundColor = '#e9ecef'; });
+                    itemDiv.addEventListener('mouseout', () => { itemDiv.style.backgroundColor = '#fff'; });
+                    
+                    itemDiv.addEventListener('click', () => {
+                        currentIndex = index;
+                        renderCurrentFeature();
+                        searchInput.value = `${code} - ${name}`;
+                        autocompleteList.style.display = 'none';
+                    });
+
+                    autocompleteList.appendChild(itemDiv);
+                }
+            }
+        });
+
+        autocompleteList.style.display = matchCount > 0 ? 'block' : 'none';
+    });
+
+    // إغلاق القائمة عند النقر خارجها
+    document.addEventListener('click', function(e) {
+        if (e.target !== searchInput && !autocompleteList.contains(e.target)) {
+            autocompleteList.style.display = 'none';
+        }
+    });
+}
   </script>
 </body>
 </html>
